@@ -1,0 +1,7 @@
+id = "cursor-style"
+name = "Cursor Style Theme"
+version = "0.0.1"
+schema_version = 1
+authors = ["Udit001", "SpreadSheets600"]
+description = "Cursor Style Theme For Zed"
+repository = "https://github.com/SpreadSheets600/cursor-theme-zed"
