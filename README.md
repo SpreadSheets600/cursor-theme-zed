@@ -10,9 +10,9 @@ This repository provides color themes for the Zed editor. The themes are JSON fi
 
 ## Screenshots
 
-![Cursor Dark](./github/images/cursor-dark.png)
-![Cursor Light](./github/images/cursor-light.png)
-![Cursor Midnight](./github/images/cursor-midnight.png)
+![Cursor Dark](./.github/images/cursor-dark.png)
+![Cursor Light](./.github/images/cursor-light.png)
+![Cursor Midnight](./.github/images/cursor-midnight.png)
 
 ## Quick Summary
 
