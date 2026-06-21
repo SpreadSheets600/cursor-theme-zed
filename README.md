@@ -16,9 +16,9 @@ This repository provides color themes for the Zed editor. The themes are JSON fi
 
 ## Quick Summary
 
-- Install directly from the repository using the provided install scripts:
-    - `scripts/install-themes.sh` (macOS/Linux)
-    - `scripts/install-themes.cmd` (Windows CMD)
+- Install directly from the repository (no clone needed) using the provided install scripts:
+    - `scripts/install-themes.sh` (macOS/Linux) — auto-downloads themes if not found locally
+    - `scripts/install-themes.cmd` (Windows CMD) — auto-downloads themes if not found locally
 - Or clone the repository and run the installer locally.
 - You can also copy files manually from `themes/` into Zed's themes directory.
 
@@ -27,7 +27,9 @@ This repository provides color themes for the Zed editor. The themes are JSON fi
 - Linux/macOS: `$HOME/.config/zed/themes` (or `$XDG_CONFIG_HOME/zed/themes` if set)
 - Windows: `%APPDATA%\Zed\themes`
 
-## Install from Latest Repository (curl/wget)
+## Install Directly (No Clone Needed)
+
+The scripts now work without cloning — if the `themes/` directory isn't found locally, they download the theme files directly from GitHub.
 
 ### macOS/Linux (curl)
 
@@ -42,8 +44,6 @@ wget -qO- https://raw.githubusercontent.com/SpreadSheets600/cursor-theme-zed/mai
 ```
 
 ### Windows (CMD)
-
-Uses the `.cmd` installer in this repository:
 
 ```bash
 curl -fL "https://raw.githubusercontent.com/SpreadSheets600/cursor-theme-zed/main/scripts/install-themes.cmd" -o "%TEMP%\install-themes.cmd" && "%TEMP%\install-themes.cmd" -y
