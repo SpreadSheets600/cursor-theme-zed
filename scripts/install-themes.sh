@@ -1,11 +1,13 @@
 set -eu
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 || exit 1; pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." >/dev/null 2>&1 || pwd)"
+REMOTE_BASE_URL="https://raw.githubusercontent.com/SpreadSheets600/cursor-theme-zed/main"
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd)"
 THEMES_SRC_DIR="${REPO_ROOT}/themes"
 
 TIMESTAMP() {
-  date +"%Y%m%dT%H%M%S" 2>/dev/null || echo "$(date +%s)"
+  date +"%Y%m%dT%H%M%S" 2>/dev/null || date +%s
 }
 
 print_usage() {
@@ -30,13 +32,11 @@ Example:
 EOF
 }
 
-
 detect_default_dest() {
   if [ -n "${APPDATA:-}" ]; then
     printf "%s\n" "${APPDATA%/}/Zed/themes"
     return 0
   fi
-
 
   if [ -n "${XDG_CONFIG_HOME:-}" ]; then
     printf "%s\n" "${XDG_CONFIG_HOME%/}/zed/themes"
@@ -48,12 +48,10 @@ detect_default_dest() {
     return 0
   fi
 
-
   printf "%s\n" "$(pwd)/.zed-themes"
 }
 
 list_theme_files() {
-  (cd "${THEMES_SRC_DIR}" >/dev/null 2>&1 || exit 0)
   found=0
   for f in "${THEMES_SRC_DIR}"/zed-cursor-*.json; do
     [ -e "$f" ] || continue
@@ -67,7 +65,6 @@ list_theme_files() {
 }
 
 confirm_yes() {
-  # returns 0 if yes, 1 if no
   if [ "$ASSUME_YES" = "1" ]; then
     return 0
   fi
@@ -95,7 +92,6 @@ backup_and_copy() {
 
   if [ -f "$dest" ]; then
     if [ "$ASSUME_YES" = "1" ]; then
-      # create a timestamped backup
       bak="${dest}.$(TIMESTAMP).bak"
       printf "Backing up existing file %s -> %s\n" "$dest" "$bak"
       cp -p -- "$dest" "$bak" 2>/dev/null || cp -p "$dest" "$bak" 2>/dev/null || {
@@ -133,11 +129,42 @@ backup_and_copy() {
   return 0
 }
 
+download_themes() {
+  local dest_dir="$1"
+  local themes="zed-cursor-dark.json zed-cursor-light.json zed-cursor-midnight.json"
+
+  printf "Local themes directory not found. Downloading themes from GitHub...\n"
+
+  if command -v curl >/dev/null 2>&1; then
+    dl() { curl -fsSL "$1" -o "$2"; }
+  elif command -v wget >/dev/null 2>&1; then
+    dl() { wget -q "$1" -O "$2"; }
+  else
+    printf "Error: Neither curl nor wget found. Cannot download themes.\n" >&2
+    return 1
+  fi
+
+  mkdir -p "$dest_dir" || {
+    printf "Failed to create directory %s\n" "$dest_dir" >&2
+    return 1
+  }
+
+  for theme in $themes; do
+    url="${REMOTE_BASE_URL}/themes/${theme}"
+    out="${dest_dir}/${theme}"
+    printf "  Downloading %s ...\n" "$theme"
+    dl "$url" "$out" || {
+      printf "  Failed to download %s\n" "$theme" >&2
+      return 1
+    }
+  done
+
+  printf "Themes downloaded to %s\n" "$dest_dir"
+}
 
 ASSUME_YES=0
 CUSTOM_DEST=""
 LIST_ONLY=0
-
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -152,7 +179,14 @@ done
 
 if [ ! -d "${THEMES_SRC_DIR}" ]; then
   printf "Themes source directory not found: %s\n" "${THEMES_SRC_DIR}" >&2
-  exit 1
+  printf "Falling back to downloading themes directly from GitHub...\n"
+  DEST_DIR="${CUSTOM_DEST:-$(detect_default_dest)}"
+  if ! download_themes "$DEST_DIR"; then
+    exit 1
+  fi
+  printf "\nInstall complete. Themes installed to: %s\n" "${DEST_DIR}"
+  printf "Restart Zed or open the Theme Selector in Zed to pick the new themes.\n"
+  exit 0
 fi
 
 if [ "$LIST_ONLY" -eq 1 ]; then
@@ -162,11 +196,9 @@ fi
 
 DEST_DIR="${CUSTOM_DEST:-$(detect_default_dest)}"
 
-
 printf "Source themes directory: %s\n" "${THEMES_SRC_DIR}"
 printf "Destination (detected): %s\n" "${DEST_DIR}"
 printf "\n"
-
 
 set +e
 src_files=
@@ -177,7 +209,6 @@ done
 set -e
 
 if [ -z "${src_files## }" ] || [ -z "$src_files" ]; then
-  # If src_files is empty -> no matches
   printf "No zed-cursor-*.json theme files found in %s\n" "${THEMES_SRC_DIR}"
   exit 0
 fi
@@ -194,7 +225,6 @@ if [ "$ASSUME_YES" != "1" ]; then
     exit 0
   fi
 fi
-
 
 if [ ! -d "${DEST_DIR}" ]; then
   printf "Creating destination directory: %s\n" "${DEST_DIR}"

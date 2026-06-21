@@ -28,14 +28,11 @@ if /I "%1"=="--help" goto :usage
 REM %~dp0 is the directory of this script (ends with a backslash)
 set "SCRIPT_DIR=%~dp0"
 REM Move up one level from scripts to repo root
-pushd "%SCRIPT_DIR%..\%" >nul 2>&1
-if errorlevel 1 (
-  REM If pushd failed, fall back to script directory parent using %SCRIPT_DIR%
-  pushd "%SCRIPT_DIR%.." >nul 2>&1
-)
+pushd "%SCRIPT_DIR%.." >nul 2>&1
 set "REPO_ROOT=%CD%"
 popd >nul
 
+set "REMOTE_BASE_URL=https://raw.githubusercontent.com/SpreadSheets600/cursor-theme-zed/main"
 set "THEMES_SRC=%REPO_ROOT%\themes"
 set "TARGET=%APPDATA%\Zed\themes"
 
@@ -52,8 +49,8 @@ if "%APPDATA%"=="" (
 )
 
 if not exist "%THEMES_SRC%\" (
-  echo ERROR: Themes folder not found at "%THEMES_SRC%". Nothing to do.
-  exit /b 1
+  echo Themes folder not found locally. Downloading from GitHub...
+  goto :download_themes
 )
 
 REM Check for any JSON theme files
@@ -129,6 +126,59 @@ if "%COPY_ERRORS%"=="0" (
   exit /b 0
 ) else (
   echo Completed with %COPY_ERRORS% errors.
+  exit /b 2
+)
+
+:download_themes
+if "%DRY_RUN%"=="1" (
+  echo DRY-RUN mode: no files will be downloaded.
+  echo Files WOULD be downloaded to: "%TARGET%"
+  echo.
+  exit /b 0
+)
+
+if "%AUTO_CONFIRM%"=="0" (
+  echo Proceed to download and install themes to "%TARGET%"? [Y/N]
+  choice /C YN /N /M "" >nul 2>&1
+  if errorlevel 2 (
+    echo Aborted by user.
+    exit /b 0
+  )
+) else (
+  echo Auto-confirm enabled: proceeding without prompt.
+)
+
+if not exist "%TARGET%\" (
+  echo Creating target directory: "%TARGET%"
+  mkdir "%TARGET%" 2>nul
+  if errorlevel 1 (
+    echo ERROR: Failed to create "%TARGET%". Check permissions.
+    exit /b 1
+  )
+)
+
+echo.
+echo Downloading themes to "%TARGET%"...
+set "DL_ERRORS=0"
+set "THEMES=zed-cursor-dark.json zed-cursor-light.json zed-cursor-midnight.json"
+for %%T in (%THEMES%) do (
+  echo - Downloading "%%T" ...
+  PowerShell -NoProfile -Command "Invoke-WebRequest -Uri '%REMOTE_BASE_URL%/themes/%%T' -OutFile '%TARGET%\%%T'" >nul 2>&1
+  if errorlevel 1 (
+    echo   FAILED to download "%%T"
+    set /A DL_ERRORS+=1
+  ) else (
+    echo   Downloaded.
+  )
+)
+
+echo.
+if "%DL_ERRORS%"=="0" (
+  echo All themes installed successfully.
+  echo They will be available in Zed the next time it loads.
+  exit /b 0
+) else (
+  echo Completed with %DL_ERRORS% errors.
   exit /b 2
 )
 
